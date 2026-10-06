@@ -90,6 +90,11 @@ export function deeplTargetLanguage(code: LanguageCode): string | undefined {
   return GOOGLE_TO_DEEPL_TARGET[code]
 }
 
+export function deeplSourceLanguage(code: LanguageCode): string | undefined {
+  const mapped = GOOGLE_TO_DEEPL_TARGET[code]
+  return mapped?.split('-')[0]
+}
+
 interface DeeplTranslateResponse {
   translations: Array<{
     detected_source_language?: string
@@ -104,16 +109,18 @@ export async function deeplTranslate(
   apiKey: string,
   endpoint: DeeplEndpoint,
 ): Promise<TranslateResult> {
-  const target = GOOGLE_TO_DEEPL_TARGET[to]
+  const target = deeplTargetLanguage(to)
   if (!target)
     throw new TranslateError(`DeepL does not support target language "${to}"`, 'UnsupportedLanguage')
 
   const params = new URLSearchParams()
   params.append('text', text)
   params.append('target_lang', target)
+
   if (from !== 'auto') {
-    const source = GOOGLE_TO_DEEPL_TARGET[from] || from.toUpperCase()
-    params.append('source_lang', source.split('-')[0])
+    const source = deeplSourceLanguage(from)
+    if (source)
+      params.append('source_lang', source)
   }
 
   let response: Response
