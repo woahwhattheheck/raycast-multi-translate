@@ -95,5 +95,5 @@ import fs from 'node:fs/promises'
     ...langs,
   ]
 
-  await fs.writeFile('./package.json', JSON.stringify(pkg, null, 2))
+  await fs.writeFile('./package.json', `${JSON.stringify(pkg, null, 2)}\n`)
 })()
