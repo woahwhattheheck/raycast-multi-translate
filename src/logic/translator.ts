@@ -1,6 +1,6 @@
 import googleTranslate from '@iamtraction/google-translate'
-import { LRUCache } from 'lru-cache'
 import { getPreferenceValues } from '@raycast/api'
+import { LRUCache } from 'lru-cache'
 import type { LanguageCode } from '../data/languages'
 import type { TranslateResult } from '../types'
 import { deeplTargetLanguage, deeplTranslate } from './deepl'
@@ -81,9 +81,25 @@ export async function translateAll(text: string, from: LanguageCode = 'auto', la
   if (!text)
     return []
 
-  const result = (await Promise.all(languages.map(async to => translate(text, from, to)))).filter(i => i.translated)
+  let firstUnsupported: TranslateError | undefined
+  const translations = await Promise.all(languages.map(async (to) => {
+    try {
+      return await translate(text, from, to)
+    }
+    catch (err) {
+      if (err instanceof TranslateError && err.name === 'UnsupportedLanguage') {
+        firstUnsupported ||= err
+        return null
+      }
+      throw err
+    }
+  }))
 
-  const fromLangs = new Set(result?.map(i => i.from))
+  const result = translations.filter((item): item is TranslateResult => Boolean(item?.translated))
+  if (!result.length && firstUnsupported)
+    throw firstUnsupported
+
+  const fromLangs = new Set(result.map(i => i.from))
   const singleSource = fromLangs.size === 1
   if (singleSource)
     return result.filter(i => i.from !== i.to && i.translated.trim().toLowerCase() !== i.original.trim().toLowerCase())
