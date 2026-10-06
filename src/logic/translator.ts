@@ -59,8 +59,11 @@ export async function translate(text: string, from: LanguageCode, to: LanguageCo
   if (wantsDeepl && !preferences.deeplApiKey)
     throw new TranslateError('set your DeepL API key in extension preferences', 'DeepL API key missing')
 
-  const useDeepl = wantsDeepl && deeplTargetLanguage(to)
+  const deeplTarget = wantsDeepl ? deeplTargetLanguage(to) : undefined
+  if (wantsDeepl && !deeplTarget)
+    throw new TranslateError(`DeepL does not support target language "${to}"`, 'UnsupportedLanguage')
 
+  const useDeepl = Boolean(deeplTarget)
   const key = `${useDeepl ? 'deepl' : 'google'}:${from}:${to}:${text}`
   const cached = cache.get(key)
   if (cached)
